@@ -15,3 +15,9 @@ OPENAI_API_KEY
 ```
 
 
+# for lambda
+
+```
+zip -r aiCopilotBot.zip lambda_function.py system_prompt checklists 
+aws lambda update-function-code --function-name slack-aicopilotbot01 --zip-file fileb://aiCopilotBot.zip
+```

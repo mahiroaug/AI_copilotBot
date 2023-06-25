@@ -63,7 +63,6 @@ def lambda_handler(event, context):
     slack_client = WebClient(secret_dict["SLACK_OAUTH_TOKEN"])
     openai.organization = secret_dict["OPENAI_ORGANIZATION"]
     openai.api_key = secret_dict["OPENAI_API_KEY"]
-    manabitCoinAddress = secret_dict["EOA_SST_FUND"] #default EoA
     
     body = json.loads(event["body"])
     text = re.sub(r"<@.*>", "", body["event"]["text"])
@@ -107,14 +106,19 @@ def lambda_handler(event, context):
             "role": "system",
             "content": system_prompt
         },
-        prev_messages
+        *prev_messages
     ]
     print("mdoel:",model,"prompt:",prompt)
     
     # STEP1 : preCompletion
     response1 = Cpmpletion_function_auto(model,prompt)
     message1 = response1["choices"][0]["message"]
-    post_slack(slack_client, channel, json.dumps(message1), thread_ts)
+    print("message1: ",message1)
+    #post_slack(slack_client, channel, json.dumps(message1), thread_ts)
+    message1content = message1["content"]
+    print("message1.content: ",message1content)
+    if message1content:
+        post_slack(slack_client, channel, message1content, thread_ts)
     
     # STEP2 : exec my function
     if message1.get("function_call"):
@@ -142,6 +146,7 @@ def lambda_handler(event, context):
 def Cpmpletion_function_auto(model,prompt):
     try:
         # step1 : Completion(function_call)
+        print("step1 - Completion(function_call)")
         response = openai.ChatCompletion.create(
             model=model,
             messages=prompt,
