@@ -178,4 +178,4 @@ pyrightconfig.json
 *.zip
 
 # checklist
-checklists/*.json
+###checklists/*.json
