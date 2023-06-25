@@ -39,7 +39,11 @@ def get_checklist(service_system):
         "WEBサーバ": "web.json",
         "ネットワーク機器": "network.json"
     }
+    print("get_checklist.file_mapping: ",file_mapping.get(service_system))
+    
     file_path = "checklists/" + file_mapping.get(service_system)
+    print("get_checklist.file_path: ",file_path)
+    
     with open(file_path, 'r') as file:
         jsonData = file.read()
     return json.loads(jsonData)
@@ -111,6 +115,7 @@ def lambda_handler(event, context):
     print("mdoel:",model,"prompt:",prompt)
     
     # STEP1 : preCompletion
+    print("STEP1")
     response1 = Cpmpletion_function_auto(model,prompt)
     message1 = response1["choices"][0]["message"]
     print("message1: ",message1)
@@ -122,26 +127,27 @@ def lambda_handler(event, context):
     
     # STEP2 : exec my function
     if message1.get("function_call"):
+        print("STEP2")
         function_name = message1["function_call"]["name"]
         arguments = json.loads(message1["function_call"]["arguments"])
         function_response = exec_my_function(function_name,arguments)
         
         # STEP3 : Completion
+        print("STEP3")
         prompt2=[
-            prompt,
+            *prompt,
             message1,
             {
                 "role": "function",
                 "name": function_name,
-                "content": function_response,
+                "content": json.dumps(function_response),
             },
         ]
+        print("mdoel:",model,"prompt2:",prompt2)
         response2 = Completion_assistant(model,prompt2)
         make_assistans_message_and_post_slack(response2, slack_client, channel, thread_ts)
     
     return {"statusCode": 200}
-
-
 
 def Cpmpletion_function_auto(model,prompt):
     try:
@@ -159,12 +165,13 @@ def Cpmpletion_function_auto(model,prompt):
         print("Error: ", err)
 
 def exec_my_function(function_name,arguments):
-    
+    print("exec_my_function: function_name=",function_name," arguments=",arguments)
+    print("arguments.get: ",arguments.get("service_system"))
     if function_name == "get_checklist":
         function_response = get_checklist(
             service_system=arguments.get("service_system")
         )
-        print("function_response: " + function_response)
+        print("function_response: ",function_response)
         return function_response
     else:
         print("no match function")
